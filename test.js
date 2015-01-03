@@ -16,7 +16,8 @@ test('setup', function (t) {
 test('start a time block', function (t) {
   var start = { 
     title: 'doing some work', 
-    project: 'timerbot' 
+    project: 'timerbot',
+    person: 'seth'
   };
   
   timer.start(start, function (err, block) {
@@ -27,7 +28,7 @@ test('start a time block', function (t) {
 });
 
 test('stop a time block', function (t) {
-  timer.stop(function (err, block) {
+  timer.stop({ person: 'seowirnoirgwnoiregnth' }, function (err, block) {
     t.notOk(err);
     t.ok(block);
     t.end();

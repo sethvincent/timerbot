@@ -31,7 +31,8 @@ var timer = require('timerbot')(db);
 ```
 var start = { 
   title: 'doing some work', 
-  project: 'timerbot' 
+  project: 'timerbot',
+  person: 'seth'
 };
 
 timer.start(start, function (err, block) {

@@ -1,5 +1,6 @@
 var mkdirp = require('mkdirp');
 var sub = require('subleveldown');
+var indexer = require('level-indexer');
 var moment = require('moment');
 var cuid = require('cuid');
 
@@ -10,15 +11,30 @@ function Timer (db, opts) {
   opts = opts || {};
   this.db = db;
   this.times = sub(db, 'times', { valueEncoding: 'json' });
+  this.index = indexer(db, ['person']);
   this.minimum = opts.minimum || 15;
 }
 
 Timer.prototype.get = function (block, cb) {
-  this.times.get(block.key, block, cb);
+  var self = this;
+  var opts = [block.person];
+  this.index.findOne(opts, function (err, key) {
+    if (err) return cb(err);
+    console.log(err, key)
+    self.times.get(key, null, cb);
+  });
 }
 
-Timer.prototype.update = function (block, cb) {
+Timer.prototype.put = function (block, cb) {
+  var self = this;
   
+  this.times.put(block.key, block, function (err) {
+    if (err) return cb(err);
+    
+    self.index.add(block, block.key, function () {
+      self.get(block, cb);
+    });
+  });
 }
 
 Timer.prototype.start = function (block, cb) {
@@ -28,7 +44,7 @@ Timer.prototype.start = function (block, cb) {
     if (status.active) return cb(status);
     var newBlock = createBlock(block);
     
-    self.times.put(newBlock.key, newBlock, function (err) {
+    self.put(newBlock, function (err) {
       if (err) return cb(err);
       self.get(newBlock, cb);
     });
@@ -57,20 +73,20 @@ Timer.prototype.stop = function (block, cb) {
 }
 
 Timer.prototype.active = function (cb) {
-  var openBlock;
-  var activeBlocks = [];
+  var activeBlock;
+
   this.times.createReadStream({ keys: false })
     .on('data', function (block) {
-      if (active(block)) openBlock = block;
+      if (block.active) activeBlock = block;
     })
     .on('error', function (err) { return cb(err); })
     .on('end', function () {
       var msg = {};
-      if (openBlock) {
+      if (activeBlock) {
         msg.active = true;
         msg.message = 'You already have an active time block: ' 
-          + openBlock.title;
-        msg.block = openBlock;
+          + activeBlock.title;
+        msg.block = activeBlock;
       }
       else {
         msg.active = false;
@@ -86,7 +102,7 @@ Timer.prototype.list = function (opts, cb) {
   }
   
   opts.keys = opts.keys || false;
-  var stream = this.times.createReadStream(opts);
+  var stream = this.index.find([opts.person, opts.active, opts.project]);
   if (!cb) return stream;
   
   var data = [];
@@ -117,17 +133,14 @@ function createBlock (doc) {
     key: doc.key || cuid(),
     start: doc.start || timestamp(),
     end: doc.end || null,
+    active: doc.active || true,
     title: doc.title || null,
     project: doc.project || null,
-    person: doc.user || null,
+    person: doc.person || null,
     hours: doc.hours || null,
     notes: doc.notes || [],
     meta: doc.meta || {}
   }
-}
-
-function active (block) {
-  return !block.end;
 }
 
 function timestamp (minimum) {
