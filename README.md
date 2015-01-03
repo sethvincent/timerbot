@@ -39,7 +39,7 @@ timer.start(start, function (err, block) {
 });
 ```
 
-### timer.stop([options], callback)
+### timer.stop([options, ]callback)
 
 ```
 timer.stop(function (err, block) {
@@ -55,7 +55,7 @@ timer.active(function (err, status) {
 });
 ```
 
-### timer.list([options], callback)
+### timer.list([options, ]callback)
 
 ```
 timer.list(function (err, data) {
