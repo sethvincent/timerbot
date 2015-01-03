@@ -1,6 +1,7 @@
 var mkdirp = require('mkdirp');
 var sub = require('subleveldown');
 var indexer = require('level-indexer');
+var through = require('through2');
 var moment = require('moment');
 var cuid = require('cuid');
 
@@ -11,16 +12,17 @@ function Timer (db, opts) {
   opts = opts || {};
   this.db = db;
   this.times = sub(db, 'times', { valueEncoding: 'json' });
-  this.index = indexer(db, ['person']);
+  this.indexesDB = sub(db, 'indexes');
+  this.index = indexer(this.indexesDB, ['person']);
   this.minimum = opts.minimum || 15;
 }
 
-Timer.prototype.get = function (block, cb) {
+Timer.prototype.get = function (person, cb) {
   var self = this;
-  var opts = [block.person];
-  this.index.findOne(opts, function (err, key) {
+
+  this.index.findOne(person, function (err, key) {
     if (err) return cb(err);
-    console.log(err, key)
+    if (!key) return cb({ error: 'no time blocks found' });
     self.times.get(key, null, cb);
   });
 }
@@ -32,92 +34,86 @@ Timer.prototype.put = function (block, cb) {
     if (err) return cb(err);
     
     self.index.add(block, block.key, function () {
-      self.get(block, cb);
+      self.times.get(block.key, null, cb);
     });
   });
 }
 
 Timer.prototype.start = function (block, cb) {
   var self = this;
-  
-  this.active(function (err, status) {
+
+  this.active(block.person, function (err, status) {
     if (status.active) return cb(status);
     var newBlock = createBlock(block);
-    
+
     self.put(newBlock, function (err) {
       if (err) return cb(err);
-      self.get(newBlock, cb);
+      self.get(newBlock.person, cb);
     });
   });
 }
 
-Timer.prototype.stop = function (block, cb) {
+Timer.prototype.stop = function (person, cb) {
   var self = this;
 
-  if (block && block.key) return stopBlock(block, cb);
-  if (typeof block === 'function') cb = block;
-
-  this.active(function (err, status) {
-    if (status.active === false) return cb({ error: 'You do not currently have an open time block' });
-    return stopBlock(status.block, cb);
-  });
-
-  function stopBlock (opts, cb) {
-    opts.end = timestamp(this.minimum);
-    opts.hours = hours(opts.start, opts.end, self.minimum);
-    self.times.put(opts.key, opts, function (err) {
+  this.active(person, function (err, status) {
+    if (status.active === false) {
+      return cb({ error: 'You do not currently have an open time block' });
+    }
+    
+    var block = status.block;
+    block.active = false;
+    block.end = timestamp(this.minimum);
+    block.hours = hours(block.start, block.end, self.minimum);
+    
+    self.times.put(block.key, block, function (err) {
       if (err) return cb(err);
-      cb(null, opts);
+      cb(null, block);
     })
-  }
+  });
 }
 
-Timer.prototype.active = function (cb) {
+Timer.prototype.active = function (person, cb) {
+  var self = this;
   var activeBlock;
+  var stream = this.index.find(person);
 
-  this.times.createReadStream({ keys: false })
-    .on('data', function (block) {
+  stream.pipe(through(each, end));
+
+  function each (key, enc, next) {
+    self.times.get(key, null, function (err, block) {
       if (block.active) activeBlock = block;
-    })
-    .on('error', function (err) { return cb(err); })
-    .on('end', function () {
-      var msg = {};
-      if (activeBlock) {
-        msg.active = true;
-        msg.message = 'You already have an active time block: ' 
-          + activeBlock.title;
-        msg.block = activeBlock;
-      }
-      else {
-        msg.active = false;
-      }
-      cb(null, msg); 
+      next();
     });
+  }
+
+  function end () {
+    if (!activeBlock) return cb(null, { active: false });
+    cb(null, {
+      active: true,
+      message: 'You already have an active time block: ' + activeBlock.title,
+      block: activeBlock
+    });
+  }
 }
 
-Timer.prototype.list = function (opts, cb) {
-  if (typeof opts === 'function') {
-    cb = opts;
-    opts = {};
-  }
-  
-  opts.keys = opts.keys || false;
-  var stream = this.index.find([opts.person, opts.active, opts.project]);
-  if (!cb) return stream;
-  
+Timer.prototype.list = function (person, cb) {
+  var stream = this.index.find(person);
+  var self = this;
   var data = [];
   
-  stream.on('data', function (block) {
-    data.push(block);
-  });
+  stream.pipe(through(each, end));
   
-  stream.on('error', function (err) {
-    cb(err);
-  });
+  function each (key, enc, next) {
+    self.times.get(key.toString(), null, function (err, block) {
+      data.push(block);
+      next();
+    });
+  }
   
-  stream.on('end', function () {
-    cb(null, data);
-  });
+  function end () {
+    cb(null, data)
+  }
 }
 
 Timer.prototype.data = function (opts, cb) {

@@ -12,5 +12,3 @@ timer.start(start, function (err, block) {
   if (err) console.log(err);
   else console.log(err, block)
 });
-
-//db.createReadStream().on('data', console.log)

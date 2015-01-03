@@ -20,7 +20,8 @@
     "moment": "^2.8.4",
     "response": "^0.14.0",
     "routes-router": "^4.1.2",
-    "subleveldown": "^1.0.4"
+    "subleveldown": "^1.0.4",
+    "through2": "^0.6.3"
   },
   "devDependencies": {
     "rimraf": "^2.2.8",

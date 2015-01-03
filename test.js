@@ -28,7 +28,7 @@ test('start a time block', function (t) {
 });
 
 test('stop a time block', function (t) {
-  timer.stop({ person: 'seowirnoirgwnoiregnth' }, function (err, block) {
+  timer.stop('seth', function (err, block) {
     t.notOk(err);
     t.ok(block);
     t.end();
