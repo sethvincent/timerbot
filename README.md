@@ -2,7 +2,7 @@
 
 > A JavaScript API for tracking time.
 
-Because most time tracking software doesn't have the things that I want (JSON API, use as JS library, & open source).
+Because most time tracking software doesn't have the things that I want (JSON API, use as JS library, **&** open source).
 
 Because there are a few project ideas I'm working on where tracking time may be part of the app, so a library would be useful.
 
@@ -70,4 +70,4 @@ See the [CONTRIBUTING.md file](https://github.com/sethvincent/timerbot/blob/mast
 
 ## License
 
-[MIT](https://github.com/sethvincent/timerbot/blob/master/LICENSE)
+[MIT](https://github.com/sethvincent/timerbot/blob/master/LICENSE.md)
