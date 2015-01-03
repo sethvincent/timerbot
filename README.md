@@ -18,7 +18,7 @@ npm install --save timerbot
 
 ## Usage
 
-Requires using with a [levelup]() instance like so:
+Requires using with a [levelup](https://github.com/rvagg/node-levelup) instance like so:
 
 ```
 var level = require('level');
