@@ -1,4 +1,3 @@
-var mkdirp = require('mkdirp');
 var sub = require('subleveldown');
 var indexer = require('level-indexer');
 var through = require('through2');
