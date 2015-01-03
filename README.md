@@ -48,7 +48,7 @@ timer.stop('robodog', function (err, block) {
 });
 ```
 
-### timer.active(person callback)
+### timer.active(person, callback)
 
 ```
 timer.active('robodog', function (err, status) {
@@ -56,7 +56,7 @@ timer.active('robodog', function (err, status) {
 });
 ```
 
-### timer.list('robodog', callback)
+### timer.list(person, callback)
 
 ```
 timer.list('robodog', function (err, data) {
