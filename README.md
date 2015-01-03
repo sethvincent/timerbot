@@ -32,7 +32,7 @@ var timer = require('timerbot')(db);
 var start = { 
   title: 'doing some work', 
   project: 'timerbot',
-  person: 'seth'
+  person: 'robodog'
 };
 
 timer.start(start, function (err, block) {
@@ -40,26 +40,26 @@ timer.start(start, function (err, block) {
 });
 ```
 
-### timer.stop([options, ]callback)
+### timer.stop(person, callback)
 
 ```
-timer.stop(function (err, block) {
+timer.stop('robodog', function (err, block) {
   console.log(err, block);
 });
 ```
 
-### timer.active(callback)
+### timer.active(person callback)
 
 ```
-timer.active(function (err, status) {
+timer.active('robodog', function (err, status) {
   console.log(err, status);
 });
 ```
 
-### timer.list([options, ]callback)
+### timer.list('robodog', callback)
 
 ```
-timer.list(function (err, data) {
+timer.list('robodog', function (err, data) {
   console.log(err, data);
 });
 ```
