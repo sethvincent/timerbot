@@ -3,6 +3,7 @@ var indexer = require('level-indexer');
 var through = require('through2');
 var moment = require('moment');
 var cuid = require('cuid');
+var each = require('each-async');
 
 module.exports = Timer;
 
@@ -35,6 +36,15 @@ Timer.prototype.put = function (block, cb) {
     self.index.add(block, block.key, function () {
       self.times.get(block.key, null, cb);
     });
+  });
+}
+
+Timer.prototype.add = function (block, cb) {
+  var newBlock = createBlock(block);
+
+  self.put(newBlock, function (err) {
+    if (err) return cb(err);
+    self.get(newBlock.person, cb);
   });
 }
 
@@ -100,27 +110,35 @@ Timer.prototype.list = function (person, cb) {
   var stream = this.index.find(person);
   var self = this;
   var data = [];
-  
+
   stream.pipe(through(each, end));
-  
+
   function each (key, enc, next) {
     self.times.get(key.toString(), null, function (err, block) {
       data.push(block);
       next();
     });
   }
-  
+
   function end () {
     cb(null, data)
   }
 }
 
-Timer.prototype.data = function (opts, cb) {
-  this.list(opts, cb);
-}
+Timer.prototype.total = function (person, project, cb) {
+  this.list(person, function (err, list) {
+    var total = 0;
+    each(list, iterator, end);
 
-Timer.prototype.add = function (opts, cb) {
-  
+    function iterator (item, i, done) {
+      total += item.hours;
+      done();
+    }
+
+    function end() {
+      cb(total);
+    }
+  });
 }
 
 function createBlock (doc) {
@@ -138,9 +156,9 @@ function createBlock (doc) {
   }
 }
 
-function timestamp (minimum) {
-  var now = moment();
-  return { human: now.format('h:mm a, MMM DD, YYYY'), unix: now.unix() };
+function timestamp (time) {
+  var t = time ? moment(time) : moment();
+  return { human: t.format('h:mm a, MMM DD, YYYY'), unix: t.unix() };
 }
 
 function hours (start, end, minimum) {
